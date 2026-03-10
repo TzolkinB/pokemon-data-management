@@ -12,12 +12,16 @@ export default defineConfig([
 	{
 		files: ['**/*.{ts,mts,cts,tsx}'],
 		plugins: { js },
-		extends: ['js/recommended'],
-		languageOptions: { globals: { ...globals.browser, ...globals.node } },
+		extends: ['js/recommended', ...tseslint.configs.recommendedTypeChecked, pluginReact.configs.flat.recommended],
+		languageOptions: {
+			globals: { ...globals.browser, ...globals.node },
+			parserOptions: {
+				projectService: true,
+				tsconfigRootDir: import.meta.dirname,
+			},
+		},
 	},
 	js.configs.recommended,
-	...tseslint.configs.recommended,
-	pluginReact.configs.flat.recommended,
 	{
 		settings: {
 			react: {
