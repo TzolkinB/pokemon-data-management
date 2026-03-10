@@ -1,0 +1,3 @@
+# Run eslint and YAML lint before committing
+# TODO: add github actions and update script to "npm run lint:husky"
+npm run lint:js
