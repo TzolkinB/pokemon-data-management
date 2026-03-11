@@ -32,44 +32,71 @@ cd ../server && npm install
 
 **Never run `reset.sql` against production!**
 
+## Start Postgres (Docker)
+
+This repo does not include a `docker-compose.yml`, so start Postgres manually.
+
+`pokemon-db` below is an example container name. Replace it with your own name if different.
+
+```bash
+# Optional: pick your container name once and reuse it in commands below
+export POKEMON_DB_CONTAINER=pokemon-db
+
+# Start a local Postgres container
+docker run --name "$POKEMON_DB_CONTAINER" \
+	-e POSTGRES_PASSWORD=postgres \
+	-e POSTGRES_DB=pokemon_test \
+	-p 5432:5432 \
+	-d postgres:16
+
+# Verify the container is running
+docker ps --filter "name=$POKEMON_DB_CONTAINER"
+```
+
+If you already created it before, start it again with:
+
+```bash
+docker start "$POKEMON_DB_CONTAINER"
+```
+
 ## First Time Setup
 
 ```bash
 # Create tables
-docker cp database/schema.sql pokemon-db:/schema.sql
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /schema.sql
+docker cp database/schema.sql "$POKEMON_DB_CONTAINER":/schema.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /schema.sql
 
 # Load sample data
-docker cp database/seed.sql pokemon-db:/seed.sql
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /seed.sql
+docker cp database/seed.sql "$POKEMON_DB_CONTAINER":/seed.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /seed.sql
 ```
 
 ## Reset (⚠️ dev only)
 
 ```bash
 # Reset everything (destructive!)
-docker cp database/reset.sql pokemon-db:/reset.sql
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /reset.sql
+docker cp database/reset.sql "$POKEMON_DB_CONTAINER":/reset.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /reset.sql
 
 # Then recreate
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /schema.sql
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /seed.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /schema.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /seed.sql
 ```
 
 ## Verify
 
 ```bash
 # List all tables (should see 5 tables)
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "\dt"
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "\dt"
 
 # See all types (these will populate your dropdown)
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "SELECT * FROM types ORDER BY name;"
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT * FROM types ORDER BY name;"
 
 # See all abilities (these will populate your dropdown)
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "SELECT * FROM abilities ORDER BY name;"
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT * FROM abilities ORDER BY name;"
 
 # See all Pokémon (your starting data)
-docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "SELECT id, name, height, weight FROM pokemon ORDER BY id;"
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT id, name, height, weight FROM pokemon ORDER BY id;"
 ```
 
 ## Running the App
@@ -158,7 +185,7 @@ pokemon-data-management/
 │   │   ├── App.tsx
 │   │   ├── index.css
 │   │   └── main.tsx
-│   ├── eslint.config.js
+│   ├── eslint.config.ts
 │   ├── index.html
 │   ├── package.json
 │   ├── tsconfig.app.json

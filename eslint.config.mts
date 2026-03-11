@@ -1,4 +1,3 @@
-import js from '@eslint/js'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import pluginReact from 'eslint-plugin-react'
@@ -11,7 +10,6 @@ export default defineConfig([
 	},
 	{
 		files: ['**/*.{ts,mts,cts,tsx}'],
-		plugins: { js },
 		extends: [...tseslint.configs.recommendedTypeChecked, pluginReact.configs.flat.recommended],
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
@@ -21,7 +19,6 @@ export default defineConfig([
 			},
 		},
 	},
-	js.configs.recommended,
 	{
 		settings: {
 			react: {

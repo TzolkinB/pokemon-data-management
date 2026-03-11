@@ -1,5 +1,5 @@
--- ⚠️  WARNING: DESTRUCTIVE OPERATION ⚠️
--- This script will DELETE ALL DATA in the pokemon_test database
+-- ⚠️  WARNING: DESTRUCTIVE SCHEMA OPERATION ⚠️
+-- This script will DROP TABLES and REMOVE ALL SCHEMA OBJECTS AND DATA in the pokemon_test database
 -- ONLY use in development/local environments
 -- DO NOT run against production or shared databases
 

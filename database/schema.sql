@@ -41,4 +41,4 @@ CREATE TABLE IF NOT EXISTS pokemon_abilities (
 
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_pokemon_types_type ON pokemon_types(type_id);
-CREATE INDEX IF NOT EXISTS idx_pokemon_abilities_pokemon ON pokemon_abilities(pokemon_id);
+CREATE INDEX IF NOT EXISTS idx_pokemon_abilities_ability ON pokemon_abilities(ability_id);
