@@ -7,7 +7,7 @@ Full-stack TypeScript workspace for a Pokemon test data management app.
 - Client: Vite, React, TypeScript
 - Server: Node.js, Express, TypeScript
 - Tooling: ESLint, Prettier, Husky, Vitest
-- Database: SQL schema in `database/schema.sql`
+- Database: SQL scripts in `database/` (`schema.sql`, `seed.sql`, `reset.sql`)
 
 ## Prerequisites
 
@@ -24,14 +24,36 @@ cd client && npm install
 cd ../server && npm install
 ```
 
-## Load the Schema
+### ⚠️ Database Files
+
+- `schema.sql` - Table definitions (safe, idempotent)
+- `seed.sql` - Sample data (safe, uses ON CONFLICT)
+- `reset.sql` - **DESTRUCTIVE** - Drops all tables (dev only!)
+
+**Never run `reset.sql` against production!**
+
+## First Time Setup
 
 ```bash
-# Copy the SQL file into the container
+# Create tables
 docker cp database/schema.sql pokemon-db:/schema.sql
-
-# Execute it
 docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /schema.sql
+
+# Load sample data
+docker cp database/seed.sql pokemon-db:/seed.sql
+docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /seed.sql
+```
+
+## Reset (⚠️ dev only)
+
+```bash
+# Reset everything (destructive!)
+docker cp database/reset.sql pokemon-db:/reset.sql
+docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /reset.sql
+
+# Then recreate
+docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /schema.sql
+docker exec -it pokemon-db psql -U postgres -d pokemon_test -f /seed.sql
 ```
 
 ## Verify
@@ -48,8 +70,9 @@ docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "SELECT * FROM ab
 
 # See all Pokémon (your starting data)
 docker exec -it pokemon-db psql -U postgres -d pokemon_test -c "SELECT id, name, height, weight FROM pokemon ORDER BY id;"
-## Running the App
 ```
+
+## Running the App
 
 Start the client:
 
@@ -112,12 +135,16 @@ npm run start
 
 ## Database
 
-The database schema lives in `database/schema.sql`.
+Database scripts live in `database/`:
+
+- `schema.sql` for table definitions
+- `seed.sql` for sample data
+- `reset.sql` for local destructive reset
 
 ## Notes
 
 - `server/server.ts` is present for the TypeScript Express server entry point.
-- Husky is configured through `.husky/pre-commit` for pre-commit checks.
+- Husky is configured through `.husky/pre-commit` and currently runs `npm run lint:js` before commit.
 
 ## Project Structure
 
@@ -138,8 +165,10 @@ pokemon-data-management/
 │   ├── tsconfig.json
 │   ├── tsconfig.node.json
 │   └── vite.config.ts
-├── database/                 <-- Database schema
-│   └── schema.sql
+├── database/                 <-- Database schema and seed scripts
+│   ├── reset.sql
+│   ├── schema.sql
+│   └── seed.sql
 ├── server/                   <-- Express API Code
 │   ├── nodemon.json
 │   ├── package.json

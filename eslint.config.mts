@@ -12,7 +12,7 @@ export default defineConfig([
 	{
 		files: ['**/*.{ts,mts,cts,tsx}'],
 		plugins: { js },
-		extends: ['js/recommended', ...tseslint.configs.recommendedTypeChecked, pluginReact.configs.flat.recommended],
+		extends: [...tseslint.configs.recommendedTypeChecked, pluginReact.configs.flat.recommended],
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
 			parserOptions: {
@@ -28,6 +28,9 @@ export default defineConfig([
 				version: 'detect',
 			},
 		},
+	},
+	{
+		files: ['**/*.{ts,tsx}'],
 		rules: {
 			'react/react-in-jsx-scope': 'off',
 			'react/jsx-uses-react': 'off',
