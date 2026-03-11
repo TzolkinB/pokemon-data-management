@@ -160,6 +160,10 @@ npm run dev
 npm run start
 ```
 
+## Server Docs
+
+- New to Express in this project? Start with the server onboarding guide: [server/README.md](server/README.md)
+
 ## Database
 
 Database scripts live in `database/`:
