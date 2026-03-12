@@ -69,18 +69,14 @@ router.post('/', async (req: Request, res: Response) => {
 
 		await client.query('BEGIN')
 
-		// Find the next available ID
-		const idResult = await client.query<{ next_id: number }>('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM pokemon')
-		const nextId = idResult.rows[0].next_id
-
-		// Insert pokemon
+		// Insert pokemon (let the database generate the ID)
 		const pokemonResult = await client.query<Pokemon>(
 			`
-      INSERT INTO pokemon (id, name, height, weight, base_experience)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO pokemon (name, height, weight, base_experience)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `,
-			[nextId, name.toLowerCase(), height, weight, base_experience || null]
+			[name.toLowerCase(), height, weight, base_experience || null]
 		)
 
 		const newPokemon = pokemonResult.rows[0]
