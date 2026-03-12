@@ -1,6 +1,15 @@
 import { Router, Request, Response } from 'express'
 import pool from '../config/database'
-import { Pokemon, PokemonWithDetails, CreatePokemonInput, UpdatePokemonInput, DatabaseError } from '../types'
+import {
+	Pokemon,
+	PokemonWithDetails,
+	CreatePokemonInput,
+	UpdatePokemonInput,
+	DatabaseError,
+	isValidId,
+	isValidTypesInput,
+	isValidAbilitiesInput,
+} from '../types'
 import { getAllPokemonQuery, searchPokemonByNameQuery, getPokemonByIdQuery } from '../queries/pokemonQueries'
 
 const router = Router()
@@ -26,7 +35,7 @@ router.get('/search', async (req: Request, res: Response) => {
 			return res.status(400).json({ error: 'Query parameter "q" is required' })
 		}
 
-		const result = await pool.query<Pokemon>(searchPokemonByNameQuery, [`%${q}%`])
+		const result = await pool.query<PokemonWithDetails>(searchPokemonByNameQuery, [`%${q}%`])
 
 		res.json(result.rows)
 	} catch (error) {
@@ -39,6 +48,10 @@ router.get('/search', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params
+
+		if (!isValidId(id)) {
+			return res.status(400).json({ error: 'Invalid id: must be a positive integer' })
+		}
 
 		const result = await pool.query<PokemonWithDetails>(getPokemonByIdQuery, [id])
 
@@ -61,9 +74,19 @@ router.post('/', async (req: Request, res: Response) => {
 		const { name, height, weight, base_experience, types, abilities } = req.body as CreatePokemonInput
 
 		// Validation
-		if (!name || !height || !weight) {
+		if (!name || height == null || weight == null) {
 			return res.status(400).json({
 				error: 'Missing required fields: name, height, weight',
+			})
+		}
+
+		if (types != null && !isValidTypesInput(types)) {
+			return res.status(400).json({ error: 'types must be an array of positive integer IDs' })
+		}
+
+		if (abilities != null && !isValidAbilitiesInput(abilities)) {
+			return res.status(400).json({
+				error: 'abilities must be an array of objects with a positive integer id and optional boolean is_hidden',
 			})
 		}
 
@@ -133,6 +156,20 @@ router.put('/:id', async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params
 		const { name, height, weight, base_experience, types, abilities } = req.body as UpdatePokemonInput
+
+		if (!isValidId(id)) {
+			return res.status(400).json({ error: 'Invalid id: must be a positive integer' })
+		}
+
+		if (types != null && !isValidTypesInput(types)) {
+			return res.status(400).json({ error: 'types must be an array of positive integer IDs' })
+		}
+
+		if (abilities != null && !isValidAbilitiesInput(abilities)) {
+			return res.status(400).json({
+				error: 'abilities must be an array of objects with a positive integer id and optional boolean is_hidden',
+			})
+		}
 
 		await client.query('BEGIN')
 
@@ -224,6 +261,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params
+
+		if (!isValidId(id)) {
+			return res.status(400).json({ error: 'Invalid id: must be a positive integer' })
+		}
 
 		const result = await pool.query<Pokemon>('DELETE FROM pokemon WHERE id = $1 RETURNING *', [id])
 

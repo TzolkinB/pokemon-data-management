@@ -19,7 +19,7 @@ Inside `server/src`:
 
 - `server.ts`: Entry point. Creates the Express app, sets middleware, mounts routes, starts the server.
 - `routes/`: Endpoint handlers grouped by resource (`pokemon`, `types`, `abilities`).
-- `config/database.ts`: Creates and exports the PostgreSQL connection pool (`pool`).
+- `config/database.ts`: Creates and exports the PostgreSQL connection pool (`pool`) and a `connectToDatabase()` startup hook called from `server.ts`.
 - `types/`: TypeScript interfaces and request body types.
 - `queries/`: (Optional helper layer) SQL builder/helper functions.
 
@@ -57,7 +57,7 @@ When a request comes in, the flow is:
 1. Express receives request in `server.ts`.
 2. Middleware runs (CORS and JSON parsing).
 3. Express picks the matching route file.
-4. Route handler runs SQL using `pool.query(...)`.
+4. Route handler validates input, then runs SQL using `pool.query(...)`.
 5. Result rows are returned as JSON.
 
 ## `routes/pokemon.ts` at a glance
@@ -83,16 +83,23 @@ This prevents partial/inconsistent writes.
 
 From `src/types/index.ts`:
 
-- `Pokemon`, `Type`, `Ability`: Data shapes from database tables.
-- `PokemonWithDetails`: Pokemon plus arrays of `types` and `abilities`.
+- `Pokemon`: Data shape for a pokemon table row.
+- `PokemonWithDetails`: Pokemon plus `types: string[]` and `abilities: Array<{ name, is_hidden }>` — reflects what the `pokemon_with_details` view actually returns.
 - `CreatePokemonInput`, `UpdatePokemonInput`: Request body shapes for POST/PUT.
 - `DatabaseError`: Error shape that may include `code` (for checks like unique constraint errors).
+- `isValidId`, `isValidTypesInput`, `isValidAbilitiesInput`: Input validation helpers used in route handlers to return 400s before any DB query runs.
 
 You also will see:
 
 - `catch (error: unknown)`
 
 This is preferred over `any` because it is safer. You must narrow the error type before using custom properties.
+
+## Startup behaviour
+
+On start, `server.ts` calls `connectToDatabase()` (exported from `config/database.ts`) to verify the DB connection. If it fails, the process exits with a non-zero code.
+
+Startup log lines (`🚀 Server running...`, `✅ Connected...`) are only printed when `NODE_ENV` is not `production` or `test`, so test runs and production stay quiet.
 
 ## Quick run and test
 

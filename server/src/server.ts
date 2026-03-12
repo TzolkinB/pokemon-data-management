@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import pool from './config/database'
+import pool, { connectToDatabase } from './config/database'
 
 // Import routes
 import pokemonRoutes from './routes/pokemon'
@@ -46,7 +46,18 @@ app.get('/health', async (req: Request, res: Response) => {
 	}
 })
 
+const isDev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test'
+
 // Start server
 app.listen(PORT, () => {
-	console.log(`🚀 Server running on http://localhost:${PORT}`)
+	if (isDev) console.log(`🚀 Server running on http://localhost:${PORT}`)
+
+	connectToDatabase()
+		.then(() => {
+			if (isDev) console.log('✅ Connected to PostgreSQL database')
+		})
+		.catch((err: unknown) => {
+			console.error('❌ Database connection failed:', err instanceof Error ? err.message : err)
+			process.exit(1)
+		})
 })

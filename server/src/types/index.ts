@@ -7,19 +7,9 @@ export interface Pokemon {
 	created_at: Date
 }
 
-export interface Type {
-	id: number
-	name: string
-}
-
-export interface Ability {
-	id: number
-	name: string
-}
-
 export interface PokemonWithDetails extends Pokemon {
-	types: Type[]
-	abilities: Array<Ability & { is_hidden: boolean }>
+	types: string[]
+	abilities: Array<{ name: string; is_hidden: boolean }>
 }
 
 export interface CreatePokemonInput {
@@ -35,4 +25,28 @@ export type UpdatePokemonInput = Partial<CreatePokemonInput>
 
 export interface DatabaseError extends Error {
 	code?: string
+}
+
+export function isValidId(id: string): boolean {
+	const n = Number(id)
+	return Number.isInteger(n) && n > 0
+}
+
+export function isValidTypesInput(types: unknown): types is number[] {
+	return Array.isArray(types) && types.every((t) => Number.isInteger(t) && t > 0)
+}
+
+export function isValidAbilitiesInput(abilities: unknown): abilities is Array<{ id: number; is_hidden?: boolean }> {
+	return (
+		Array.isArray(abilities) &&
+		abilities.every((a: unknown) => {
+			if (a === null || typeof a !== 'object') return false
+			const obj = a as Record<string, unknown>
+			return (
+				Number.isInteger(obj.id) &&
+				(obj.id as number) > 0 &&
+				(obj.is_hidden === undefined || typeof obj.is_hidden === 'boolean')
+			)
+		})
+	)
 }
