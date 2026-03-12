@@ -136,20 +136,39 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 		await client.query('BEGIN')
 
+		// Determine if base_experience was explicitly provided in the request body
+		const baseExperienceProvided = Object.prototype.hasOwnProperty.call(req.body, 'base_experience')
+
 		// Update pokemon basic info
-		const result = await client.query<Pokemon>(
-			`
+		let updateQuery: string
+		let queryParams: unknown[]
+
+		if (baseExperienceProvided) {
+			// If base_experience is provided (including null), update it directly
+			updateQuery = `
       UPDATE pokemon
       SET name = COALESCE($1, name),
           height = COALESCE($2, height),
           weight = COALESCE($3, weight),
-          base_experience = COALESCE($4, base_experience)
+          base_experience = $4
       WHERE id = $5
       RETURNING *
-    `,
-			[name?.toLowerCase(), height, weight, base_experience, id]
-		)
+    `
+			queryParams = [name?.toLowerCase(), height, weight, base_experience, id]
+		} else {
+			// If base_experience is not provided, leave it unchanged
+			updateQuery = `
+      UPDATE pokemon
+      SET name = COALESCE($1, name),
+          height = COALESCE($2, height),
+          weight = COALESCE($3, weight)
+      WHERE id = $4
+      RETURNING *
+    `
+			queryParams = [name?.toLowerCase(), height, weight, id]
+		}
 
+		const result = await client.query<Pokemon>(updateQuery, queryParams)
 		if (result.rows.length === 0) {
 			await client.query('ROLLBACK')
 			return res.status(404).json({ error: 'Pokemon not found' })
