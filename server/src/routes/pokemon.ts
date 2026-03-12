@@ -45,7 +45,7 @@ router.get('/search', async (req: Request, res: Response) => {
 })
 
 // GET /api/pokemon/:id - Get single pokemon by ID
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
 	try {
 		const { id } = req.params
 
@@ -92,14 +92,18 @@ router.post('/', async (req: Request, res: Response) => {
 
 		await client.query('BEGIN')
 
-		// Insert pokemon (let the database generate the ID)
+		// Find the next available ID for schemas where pokemon.id is not auto-generated
+		const idResult = await client.query<{ next_id: number }>('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM pokemon')
+		const nextId = idResult.rows[0].next_id
+
+		// Insert pokemon
 		const pokemonResult = await client.query<Pokemon>(
 			`
-      INSERT INTO pokemon (name, height, weight, base_experience)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO pokemon (id, name, height, weight, base_experience)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `,
-			[name.toLowerCase(), height, weight, base_experience || null]
+			[nextId, name.toLowerCase(), height, weight, base_experience ?? null]
 		)
 
 		const newPokemon = pokemonResult.rows[0]
@@ -150,7 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
 })
 
 // PUT /api/pokemon/:id - Update pokemon
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: Request<{ id: string }>, res: Response) => {
 	const client = await pool.connect()
 
 	try {
@@ -258,7 +262,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 })
 
 // DELETE /api/pokemon/:id - Delete pokemon
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request<{ id: string }>, res: Response) => {
 	try {
 		const { id } = req.params
 

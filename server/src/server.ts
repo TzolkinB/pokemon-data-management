@@ -1,7 +1,10 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import pool, { connectToDatabase } from './config/database'
+import swaggerUi from 'swagger-ui-express'
+import YAML from 'yamljs'
+import path from 'path'
+import pool from './config/database'
 
 // Import routes
 import pokemonRoutes from './routes/pokemon'
@@ -13,18 +16,28 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
+// Load OpenAPI spec
+const loadedSwaggerDocument: unknown = YAML.load(path.join(__dirname, '../docs/openapi.yaml'))
+const swaggerDocument = loadedSwaggerDocument as Parameters<typeof swaggerUi.setup>[0]
+
 // Middleware
 app.use(cors())
 app.use(express.json())
+
+// Swagger UI - Interactive API documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 // Routes
 app.use('/api/pokemon', pokemonRoutes)
 app.use('/api/types', typesRoutes)
 app.use('/api/abilities', abilitiesRoutes)
 
-// Test route
+// Root route
 app.get('/', (req: Request, res: Response) => {
-	res.json({ message: 'Pokemon Test Data Manager API' })
+	res.json({
+		message: 'Pokemon Test Data Manager API',
+		documentation: 'http://localhost:3000/api-docs',
+	})
 })
 
 // Health check
@@ -52,12 +65,13 @@ const isDev = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 
 app.listen(PORT, () => {
 	if (isDev) console.log(`🚀 Server running on http://localhost:${PORT}`)
 
-	connectToDatabase()
-		.then(() => {
+	void (async () => {
+		try {
+			await pool.query('SELECT NOW()')
 			if (isDev) console.log('✅ Connected to PostgreSQL database')
-		})
-		.catch((err: unknown) => {
+		} catch (err: unknown) {
 			console.error('❌ Database connection failed:', err instanceof Error ? err.message : err)
 			process.exit(1)
-		})
+		}
+	})()
 })

@@ -19,7 +19,7 @@ Inside `server/src`:
 
 - `server.ts`: Entry point. Creates the Express app, sets middleware, mounts routes, starts the server.
 - `routes/`: Endpoint handlers grouped by resource (`pokemon`, `types`, `abilities`).
-- `config/database.ts`: Creates and exports the PostgreSQL connection pool (`pool`) and a `connectToDatabase()` startup hook called from `server.ts`.
+- `config/database.ts`: Creates and exports the PostgreSQL connection pool (`pool`) and centralizes DB pool error handling.
 - `types/`: TypeScript interfaces and request body types.
 - `queries/`: (Optional helper layer) SQL builder/helper functions.
 
@@ -97,7 +97,7 @@ This is preferred over `any` because it is safer. You must narrow the error type
 
 ## Startup behaviour
 
-On start, `server.ts` calls `connectToDatabase()` (exported from `config/database.ts`) to verify the DB connection. If it fails, the process exits with a non-zero code.
+On start, `server.ts` performs a startup DB check with `pool.query('SELECT NOW()')`. If it fails, the process exits with a non-zero code.
 
 Startup log lines (`🚀 Server running...`, `✅ Connected...`) are only printed when `NODE_ENV` is not `production` or `test`, so test runs and production stay quiet.
 
