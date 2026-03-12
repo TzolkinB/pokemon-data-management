@@ -25,6 +25,7 @@ export type UpdatePokemonInput = Partial<CreatePokemonInput>
 
 export interface DatabaseError extends Error {
 	code?: string
+	constraint?: string
 }
 
 export function isValidId(id: string): boolean {

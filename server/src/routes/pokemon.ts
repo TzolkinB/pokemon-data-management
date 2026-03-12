@@ -92,6 +92,9 @@ router.post('/', async (req: Request, res: Response) => {
 
 		await client.query('BEGIN')
 
+		// Serialize manual ID allocation to avoid duplicate next_id under concurrent writes.
+		await client.query('SELECT pg_advisory_xact_lock($1)', [947001])
+
 		// Find the next available ID for schemas where pokemon.id is not auto-generated
 		const idResult = await client.query<{ next_id: number }>('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM pokemon')
 		const nextId = idResult.rows[0].next_id
@@ -143,8 +146,15 @@ router.post('/', async (req: Request, res: Response) => {
 
 		const dbError = error as DatabaseError
 		if (dbError.code === '23505') {
-			// Unique violation
-			return res.status(409).json({ error: 'Pokemon with this name already exists' })
+			if (dbError.constraint === 'pokemon_name_key') {
+				return res.status(409).json({ error: 'Pokemon with this name already exists' })
+			}
+
+			if (dbError.constraint === 'pokemon_pkey') {
+				return res.status(409).json({ error: 'Pokemon ID conflict during creation. Please retry.' })
+			}
+
+			return res.status(409).json({ error: 'Unique constraint violation while creating pokemon' })
 		}
 
 		res.status(500).json({ error: 'Failed to create pokemon' })
@@ -252,7 +262,11 @@ router.put('/:id', async (req: Request<{ id: string }>, res: Response) => {
 
 		const dbError = error as DatabaseError
 		if (dbError.code === '23505') {
-			return res.status(409).json({ error: 'Pokemon with this name already exists' })
+			if (dbError.constraint === 'pokemon_name_key') {
+				return res.status(409).json({ error: 'Pokemon with this name already exists' })
+			}
+
+			return res.status(409).json({ error: 'Unique constraint violation while updating pokemon' })
 		}
 
 		res.status(500).json({ error: 'Failed to update pokemon' })
