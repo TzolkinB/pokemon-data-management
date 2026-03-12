@@ -1,0 +1,488 @@
+# Copy/paste this YAML into https://editor.swagger.io to visualize and edit the API
+openapi: 3.0.3
+info:
+  title: Pokemon Test Data Manager API
+  description: |
+    A self-service API for managing Pokemon test data. This tool eliminates bottlenecks 
+    by allowing testers to create, update, and delete test Pokemon without requiring 
+    database access or developer assistance.
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: pokemon
+    description: Pokemon CRUD operations
+  - name: types
+    description: Pokemon type reference data
+  - name: abilities
+    description: Pokemon ability reference data
+  - name: health
+    description: System health checks
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API and database are responsive
+      tags:
+        - health
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  database:
+                    type: string
+                    example: connected
+                  timestamp:
+                    type: string
+                    format: date-time
+        '500':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/pokemon:
+    get:
+      summary: Get all Pokemon
+      description: Retrieve all Pokemon with their types and abilities
+      tags:
+        - pokemon
+      responses:
+        '200':
+          description: List of Pokemon
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PokemonWithDetails'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new Pokemon
+      description: Create a new Pokemon with types and abilities
+      tags:
+        - pokemon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePokemonRequest'
+      responses:
+        '201':
+          description: Pokemon created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '400':
+          description: Invalid request (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Pokemon with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/pokemon/search:
+    get:
+      summary: Search Pokemon by name
+      description: Fuzzy search for Pokemon by name (case-insensitive)
+      tags:
+        - pokemon
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (partial name match)
+          schema:
+            type: string
+            example: pika
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PokemonWithDetails'
+        '400':
+          description: Missing query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/pokemon/{id}:
+    get:
+      summary: Get Pokemon by ID
+      description: Retrieve a single Pokemon with its types and abilities
+      tags:
+        - pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Pokemon ID
+          schema:
+            type: integer
+            example: 25
+      responses:
+        '200':
+          description: Pokemon details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokemonWithDetails'
+        '404':
+          description: Pokemon not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update Pokemon
+      description: Update an existing Pokemon's details, types, and abilities
+      tags:
+        - pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Pokemon ID
+          schema:
+            type: integer
+            example: 25
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePokemonRequest'
+      responses:
+        '200':
+          description: Pokemon updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pokemon'
+        '404':
+          description: Pokemon not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Pokemon with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete Pokemon
+      description: Remove a Pokemon from the database
+      tags:
+        - pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Pokemon ID
+          schema:
+            type: integer
+            example: 25
+      responses:
+        '200':
+          description: Pokemon deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Pokemon deleted successfully
+                  pokemon:
+                    $ref: '#/components/schemas/Pokemon'
+        '404':
+          description: Pokemon not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/types:
+    get:
+      summary: Get all types
+      description: Retrieve all available Pokemon types (for dropdown menus)
+      tags:
+        - types
+      responses:
+        '200':
+          description: List of types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Type'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/abilities:
+    get:
+      summary: Get all abilities
+      description: Retrieve all available Pokemon abilities (for dropdown menus)
+      tags:
+        - abilities
+      responses:
+        '200':
+          description: List of abilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ability'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Pokemon:
+      type: object
+      required:
+        - id
+        - name
+        - height
+        - weight
+      properties:
+        id:
+          type: integer
+          example: 25
+          description: Unique Pokemon ID
+        name:
+          type: string
+          example: pikachu
+          description: Pokemon name (lowercase)
+        height:
+          type: integer
+          example: 4
+          description: Height in decimeters
+        weight:
+          type: integer
+          example: 60
+          description: Weight in hectograms
+        base_experience:
+          type: integer
+          nullable: true
+          example: 112
+          description: Base experience points
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when Pokemon was created
+
+    PokemonWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/Pokemon'
+        - type: object
+          properties:
+            types:
+              type: array
+              items:
+                type: string
+              example: ['electric']
+              description: List of type names
+            abilities:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: static
+                  is_hidden:
+                    type: boolean
+                    example: false
+              description: List of abilities with hidden status
+
+    CreatePokemonRequest:
+      type: object
+      required:
+        - name
+        - height
+        - weight
+      properties:
+        name:
+          type: string
+          example: testmon
+          description: Pokemon name (will be converted to lowercase)
+        height:
+          type: integer
+          example: 10
+          description: Height in decimeters
+        weight:
+          type: integer
+          example: 100
+          description: Weight in hectograms
+        base_experience:
+          type: integer
+          nullable: true
+          example: 50
+          description: Base experience points (optional)
+        types:
+          type: array
+          items:
+            type: integer
+          example: [10]
+          description: Array of type IDs
+        abilities:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: integer
+                example: 3
+              is_hidden:
+                type: boolean
+                example: false
+                default: false
+          description: Array of abilities with hidden status
+
+    UpdatePokemonRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: pikachu
+        height:
+          type: integer
+          example: 4
+        weight:
+          type: integer
+          example: 60
+        base_experience:
+          type: integer
+          example: 112
+        types:
+          type: array
+          items:
+            type: integer
+          example: [13]
+        abilities:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: integer
+                example: 7
+              is_hidden:
+                type: boolean
+                example: false
+
+    Type:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          example: 13
+        name:
+          type: string
+          example: electric
+
+    Ability:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          example: 7
+        name:
+          type: string
+          example: static
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: Failed to fetch pokemon

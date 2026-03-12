@@ -16,8 +16,4 @@ pool.on('error', (err: Error) => {
 	process.exit(-1)
 })
 
-export async function connectToDatabase(): Promise<void> {
-	await pool.query('SELECT NOW()')
-}
-
 export default pool

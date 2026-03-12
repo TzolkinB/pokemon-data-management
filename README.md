@@ -99,6 +99,54 @@ docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SEL
 docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT id, name, height, weight FROM pokemon ORDER BY id;"
 ```
 
+## Troubleshooting: Missing pokemon_with_details View
+
+If the server logs this error:
+
+- `relation "pokemon_with_details" does not exist`
+
+it usually means `schema.sql` has not been applied to the same database the server is using.
+
+Check whether the view exists:
+
+```bash
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT current_database();"
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "SELECT * FROM information_schema.views WHERE table_name = 'pokemon_with_details';"
+```
+
+If no row is returned, re-apply schema:
+
+```bash
+docker cp database/schema.sql "$POKEMON_DB_CONTAINER":/schema.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /schema.sql
+```
+
+Optional: reload seed data after schema changes:
+
+```bash
+docker cp database/seed.sql "$POKEMON_DB_CONTAINER":/seed.sql
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -f /seed.sql
+```
+
+## Troubleshooting: 409 on Create Pokemon (Duplicate Name)
+
+If `POST /api/pokemon` returns `409` with an error like:
+
+- `duplicate key value violates unique constraint "pokemon_name_key"`
+
+then a pokemon with that `name` already exists.
+
+Use one of these fixes:
+
+1. Create with a different name.
+2. Delete the existing pokemon first, then create again.
+
+Delete example (SQL):
+
+```bash
+docker exec -it "$POKEMON_DB_CONTAINER" psql -U postgres -d pokemon_test -c "DELETE FROM pokemon WHERE name = 'testmon';"
+```
+
 ## Running the App
 
 Start the client:
